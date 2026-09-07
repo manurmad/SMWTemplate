@@ -1,3 +1,6 @@
+// ~Hack~ Super Dram World 2
+// #ID = 3787
+
 // SMW TEMPLATE
 
 
@@ -344,8 +347,8 @@ moon_counter = byte(0x13c5)
 // That is ALL you need to do to make this code block work!
 // If Title / Description fiels are empty (""), a default title or description will be used (see default_moon_title)
 Moon = [
-    ["Example Single Moon Achievement", "Example Desc: Collect the Moon in level with id 0x01", 0, 0x01],
-    ["", "", 0, 0x02]
+  //  ["Example Single Moon Achievement", "Example Desc: Collect the Moon in level with id 0x01", 0, 0x01],
+  //  ["", "", 0, 0x02]
 ]
 
 // -- MULTI MOON ACHIEVEMENTS --
@@ -354,7 +357,7 @@ Moon = [
 // Example is below
 // NOTE: if you don't want any single moon or multi moon achievements, you can just leave the variable blank.
 Moons = {
-    1: [["Example Multi Moon Achievement", "Collect the moons from these levels", 10], [0x01, 0x02, 0x28, 0x35]]
+   // 1: [["Example Multi Moon Achievement", "Collect the moons from these levels", 10], [0x01, 0x02, 0x28, 0x35]]
 }
 
 //for if you want a standardized moon title/description name
@@ -502,7 +505,7 @@ achievement(
 //view note about box_id on the function MessageBoxHit
 
 msg_box = [
-    ["Example Message Box", "Read the message box in the following level", 3, 0x15, -1],
+    
 
 ]
 for item in msg_box{
@@ -518,7 +521,7 @@ for item in msg_box{
 // -- ENTERING A SPECIFIC ROOM --
 // format: [[<title>, <desc>, <points>, <level_image>, <previous_room_image>, <room_image>]]
 room_arr = [
-    ["Example Room", "Enter this secret room", 5, 0x01, 0x1AA, 0x1AB]
+    
 ]
 
 for item in room_arr{
@@ -550,7 +553,7 @@ for key in Rooms{
 // -- GETTING A MIDWAY --
 // format: [[<title>, <desc>, <points>, <level_image>]]
 midway_arr = [
-    ["Example Midway", "Get the midway in level 0x01", 5, 0x01]
+    
 ]
 
 for item in midway_arr{
