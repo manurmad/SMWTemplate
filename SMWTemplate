@@ -1,8 +1,10 @@
-// ~Hack~ Super Dram World 2
-// #ID = 3787
+// ~Hack~ XXXXXXXXXX
+// #ID = XXXXXXXXXX
 
 // SMW TEMPLATE
 
+//Toggle this on or off depending on if the hack uses fast retry! 
+FAST_RETRY = 0
 
 //First, the two most important things in an SMW Hack. Level Identifier and Room Identifier
 
@@ -109,92 +111,69 @@ level_images = {
     0x5f: "", //13b
 }
 
-powerup = byte(0x19) // Players's Powerup status
+//Invert the level_images dictionary below, so you can for example use 'level_image = lvl["Yoshi's House"]' in achievement logic instead of needing to use level IDs!
+lvl = {}
+
+for key in level_images {
+    if (level_images[key] != "") {
+        lvl[level_images[key]] = key
+    }
+}
+
+powerup = byte(0x19) // players powerup status
 pos_x = word(0x94) // Players x-position
 pos_y = word(0x96) // Player's y-position
-anim = byte(0x71) //Player animation (1=taking damage,2=grabbing shroom,6=boss door,9=death,b=freeze player,d=entering a door)
+anim = byte(0x71) //Player animation (1=taking damage, 2=grabbing shroom, 5=horizontal pipe, 6=vertical pipe/ boss door, 7=diagonal pipe, 8=yoshi wings, 9=death, b=freeze player, d=entering a door)
+fast_retry_cp = byte(0x1b404) //0x00 = Midway not collected, 0x08 = Midway is collected in current level
+fast_retry_dead = byte(0x1b405) //0x01 = dead (fast retry ASM only address?)
 function Dead() => anim==9
+function Respawned() => prev(fast_retry_dead) == 1 && fast_retry_dead == 0 //respawned from a death in fast retry
 
 game_state = byte(0x100) //0x0e is overworld, 0x0f-0x13 is a transition in a level, 0x14 is playing the game
 function Boot() => game_state <= 0x07
 function Title() => game_state <= 0x0a
 function InGame() => game_state > 0x0a
+
 room_image = word(0x10b) // unique room identifier for each room in the game
 coins = byte(0xdbf) // # of coins, max 100 (decimal)
 lives = byte(0xdbe) // # of lives, max 99 (decimal)
-
 on_yoshi = byte(0xdc1) // = 0x01
-
 exit = byte(0xdd5) // 0x01 is normal, 0x02 is special exit
-
 timer = byte(0xf31)*100 + byte(0xf32)*10 + byte(0xf33) //time left
-
-
 score_total  = tbyte(0xf34)+tbyte(0xf37) // Mario and Luigi's score together
-
 midway = byte(0x13ce) // mario has collected a midway point in his current life
 cutscene = byte(0x13c6) // cutscene start after a boss; 0x01=castle 1; 0x02=castle 2....0x08=credits (fianl castle--turns to 0xff before credits play?)
-start_midway = byte(0x13cf) //0x40==Respawned from a midway
-function InLevel() => tbyte(0xce) != 0x00 //Sprites pointer not 0
-
-function StartFromBeginning(lvl) => once(level_image == lvl && prev(!InLevel()) && InLevel() && start_midway == 0)
-function StartLevelAny(lvl) => once(level_image == lvl && prev(!InLevel()) && InLevel())
-function StartFromCheckpoint(lvl) => once(level_image == lvl && prev(!InLevel()) && InLevel() && start_midway == 0x40)
-
-function MidwayCollected() => midway==1 && prev(midway)==0
-function TouchedGoal() => goal == 0xff && prev(goal)==0x00
-function CutsceneStart() => prev(cutscene) == 0 && cutscene > 0
-
-function FailConditions() => never(!InLevel()) && never(Dead()) && never(Title())
-
+start_midway = byte(0x13cf) //0x40==Respawned from a midway (DOES NOT APPLY AFTER A FAST RETRY DEATH, USE 0x01b404 INSTEAD)
 pressed_big_switch = byte(0x13d2) //0x01 briefly, then changes to 1, 2, 3, or 4 depending on the color pressed
-current_yc = byte(0x1420) // # yoshi coins you have
-
-// brief: checks if a message box has been hit.
-// Each level has 2 message box IDs, 1 and 2 I believe.
-// If you care which one gets hit, pass in the num.
-// If you don't care which one gets hit, you don't need to pass in anything.
-message_box = byte(0x1426)
-function MessageBoxHit(num=-1){
-    if num == -1
-        return message_box > 0
-    return message_box == num
-}
-
-key = byte(0x1434) //timer that counts fown from 0x30 when you get a key exit
 held_item = byte(0x148f) //0x01 if mario is holding an item
 star = byte(0x1490) //star timer, counts down from 0xff
 goal = byte(0x1493) //timer that counts down from 0xff when you finish level
+key = byte(0x1434) //timer that counts fown from 0x30 when you get a key exit
 p_switch = byte(0x14ad) //timer that counts down from (normally) 0xff
-powerup = byte(0x19)
+current_yc = byte(0x1420) // # yoshi coins you have
+combo = byte(0x1697)  // consecutive enemies mario has stepped on / hit with star power
+sprite_load_status = byte(0x1938)
 
-function InAir() => byte(0x13ef) == 0
-function OnGround() => byte(0x13ef) == 0
-function Spin() => byte(0x140d) == 0x01
-function Has_Powerup() => powerup > 0
-function Has_Cape() => powerup == 2
-function Damaged() => byte(0x19) < prev(byte(0x19))
-function Grab() => byte(0x1470) == 0x01
-
-overworld_mario = byte(0x1f11) //overworld map
-overworld_luigi = byte(0x1f12) //overworld map
-
-//switces pressed
+//switches pressed
 green_switch = byte(0x1f27)
 yellow_switch = byte(0x1f28)
 blue_switch = byte(0x1f29)
 red_switch = byte(0x1f2a)
 exits = byte(0x1f2e)
 
-
-combo = byte(0x1697) // consecutive enemies mario has stepped on / hit with star power
-
-sprite_load_status = byte(0x1938)
-
-
+function InAir() => byte(0x13ef) == 0
+function OnGround() => byte(0x13ef) == 0
+function Spin() => byte(0x140d) == 0x01
+function Has_Powerup() => powerup > 0
+function Has_Cape() => powerup == 2
+function Riding_Yoshi() => on_yoshi == 1
+function Damaged() => byte(0x19) < prev(byte(0x19))
+function Grabbing() => byte(0x1470) == 0x01
+function Climbing() => byte(0x18be) > 0
 function Paused() => byte(0x13d4) ==  0x01
-// Additional hack specific goes here
 
+overworld_mario = byte(0x1f11) //overworld map
+overworld_luigi = byte(0x1f12) //overworld map
 
     // Create array of 12-bytes sprite animation table
     
@@ -240,248 +219,164 @@ Sprite_Animation = PopulateTable(0x1602)
 Sprite_Load_Status = PopulateTable(0x161A) //0xFF = won't be reloaded
 Sprite_Consecutive_Kills = PopulateTable(0x1626)
 Sprite_Behind_Scenery = PopulateTable(0x1632) //behind a fence, sinking in lava, eaten by baby yoshi
-// * * * * * * * * * * * * * * * * * * * * Progression * * * * * * * * * * * * * * * * * * * *
 
+function InLevel() => tbyte(0xce) != 0x00 //Sprites pointer is not 0, meaning you are NOT on the world map
 
-/* IMPORTANT NOTE
-    If a level has more than one goal tape exit, you can do one of two things:
-    1. Implement the logic yourself using 0x00000dd5
-    2. Turn on this flag to make *all* achievemtsn rely on 0x00000dd5 for the trigger
-*/
+function TouchedGoal() => goal == 0xff && prev(goal)==0x00
+function Normal_Exit() =>prev(exit)==0x00 && exit == 1   
+function Key_Exit() =>prev(exit)==0x00 && exit == 2
+function MidwayCollected() => midway==1 && prev(midway)==0 && game_state == 0x14
+function FastRetryMidwayCollected() => prev(fast_retry_cp) != fast_retry_cp && prev(level_image) == level_image 
+function CutsceneStart() => prev(cutscene) == 0 && cutscene > 0
+function Pressed_Switch() => prev(pressed_big_switch) == 0 && pressed_big_switch == 1
+function Entered_Room(room) => prev(game_state) == 0x13 && game_state == 0x14 && room_image == room
 
-use_dd5 = 0
-//Put all non-progression normal exits in this array [level-images] Any of these arrays can be empty
-//Format: [[Title, Description, Points, Level_Image], [...]]
-level_cheevos = []
-//Put all progression normal exits in this array
-level_prog_cheevos = []
-//Put all non-progression key exits in this array
-secret_level_cheevos = []
-//Put all progression key exits in this array
-secret_prog_cheevos = []
-//The win condition may need custom logic depending on the boss. If it is exit-based, put it here
-//This one does not have double brackets
-win_condition_level = []
-//If the win has custom logic, put it here
-win = []
-//Put all "both exits" cheevos in this array
-//Format: [[Title, Description, Points, Level_Image, OW Event ID #1, OW Event ID #2], [...]]
-both_exits =[]
+//define challenge trigger conditions
+INSTANT = 0 // use the goal timer (byte(0x1493) -> timer that counts down from 0xff when you finish level)
+NORMAL_EXIT = 1 // use dd5 = 1
+SECRET_EXIT = 2 // use dd5 = 2
+MIDWAY = 3 // use 13ce = 1
+BOSS = 4 // use 13c6 > 0
+SWITCH = 5 // use 13d2 > 0
+ROOM = 6 // for when a challenge requires entering a specific room
 
-function Normal_Exit(){
+//Optional function for challenges. Creates the starting conditions for a challenge to prime, such as starting from the beginning or from a checkpoint. 
+//Be sure to edit the FAST_RETRY constant for this to work properly with hacks that use the fast retry system.
+//The optional "spawns" array contains the checkpoint ID(s) for which the challenge to start. By default it is [0] which means start from the beginning.
+//-If [-1] is passed in for the spawns array, the challenge will start upon entering the level from ANY point (the beginning or the checkpoint).
+//-If [1] is passed in for the spawns array, the challenge will start upon starting from the checkpoint only.
+//-If [0, 5, 8] is passed in, the challenge will start upon starting the level from the beginning OR starting from the fast retry spawn IDs 5 or 8.
+function Start(img, spawns = [0])
+{
 
-    return exit == 1 && prev(exit)==0x00    
-}
-function Key_Exit(){
-
-    return exit == 2 && prev(exit)==0x00  
-}
-
-function Event(n) => bit(7 - (n % 8), 0x1f02 + (n / 8))
-
-//key activation: 0x00 -> 0x30
-function Level_Cheevos(item, fn, ach_type = ""){
-    achievement(
-        title = item[0],
-        description = item[1],
-        points = item[2],
-        type = ach_type,
-        trigger = level_image == item[3] && fn()
-    )
-}
-
-function Both_Exits(item){
-    achievement(
-        title = item[0],
-        description = item[1],
-        points = item[2],
-        trigger = level_image==item[3] && prev(Event(item[4])) + prev(Event(item[5])) == 1 && measured(Event(item[4]) + Event(item[5]) == 2, when=InGame())
-    )
-}
-
-for item in level_cheevos{
-    Level_Cheevos(item, Normal_Exit)
-}
-for item in level_prog_cheevos{
-    Level_Cheevos(item, Normal_Exit, "progression")
-}
-for item in secret_level_cheevos{
-    Level_Cheevos(item, Key_Exit)
-}
-for item in secret_prog_cheevos{
-    Level_Cheevos(item, Key_Exit, "progression")
-}
-
-if length(win_condition_level) == 4{
-    Level_Cheevos(item, Normal_Exit, "win_condition")
-}
-
-for item in both_exits{
-    Both_Exits(item)
-}
-
-achievement(
-        title=win[0],
-        description = win[1],
-        points = win[2],
-        type = win[3],
-        trigger = level_image==0x14 && prev(cutscene) != 8 && cutscene == 8
-    )
-
-
-// put additional level completion based achievements here
-
-
-
-
-// * * * * * * * * * * * * * * * * * * * * Moons * * * * * * * * * * * * * * * * * * * *
-
-
-//THIS IS IN A VERY BROKEN STATE IRGHT NOW. NEED TO CHANGE EVERYTHING TO "MOON" AND ALSO
-// MAKE THE LOGIC NICER. CURRENTLY WORKING ON MAKING FUNCTION FOR RETURNING THE BIT VALUE
-
-moon_counter = byte(0x13c5)
-
-// -- SINGLE MOON ACHIEVEMENTS --
-// TODO: Fill this array in with: Title, Description, Points, level_image with moon
-// That is ALL you need to do to make this code block work!
-// If Title / Description fiels are empty (""), a default title or description will be used (see default_moon_title)
-Moon = [
-  //  ["Example Single Moon Achievement", "Example Desc: Collect the Moon in level with id 0x01", 0, 0x01],
-  //  ["", "", 0, 0x02]
-]
-
-// -- MULTI MOON ACHIEVEMENTS --
-// Same as before, all you have to do is fill in this array, but this time, with this format:
-// <key>: [["<title>", "<description>", <points>], [<list of level IDs>]]
-// Example is below
-// NOTE: if you don't want any single moon or multi moon achievements, you can just leave the variable blank.
-Moons = {
-   // 1: [["Example Multi Moon Achievement", "Collect the moons from these levels", 10], [0x01, 0x02, 0x28, 0x35]]
-}
-
-//for if you want a standardized moon title/description name
-//if your Moon_Info is blank, it will use these
-//only for single moon achievements
-default_moon_title = "Moon Title: "
-default_moon_desc = "Moon Desc: "
-
-//If you need a custom function to handle moon logic, put it here.
-//Multi-moon achievements are unaffected by this functions since I doubt you would ever need it
-//format <level_id>: <function_name>
-// 0x40: dont_die_until_finishing_level()
-custom_moon_logic = {}
-
-
-//You don't need to edit anything below this line
-function MoonLogic(i) => game_state == 0x14 && moon_counter > prev(moon_counter)
-
-function Moon_Bit(img) => bit(7-(img)%8,0x1fee+img/8)
-
-
-
-len_moon = length(Moon)
-
-function Moon_Title(i){
-    if Moon[i][0]==""
-        return (default_moon_title + level_images[Moon[i][3]])
-    else return Moon[i][0]
-} 
-function Moon_Desc(i){
-    if Moon[i][1] == ""
-        return (default_moon_desc + level_images[Moon[i][3]])
-    else return Moon[i][1]
-}
-
-
-//generate singular moon achievement
-for i in range (0, len_moon-1){
-    achievement(
-        title = Moon_Title(i),
-        description = Moon_Desc(i),
-        points=Moon[i][2],
-        trigger = MoonLogic(i)
-    )
-}
-
-
+    if (dictionary_contains_key(level_images, img))
+        image = level_image
+    else
+        image = room_image
     
+    if (length(spawns) > 0 && spawns[0] == -1) //-1 means the start is anywhere in the level
+            return tally(1, once(image == img && prev(!InLevel()) && InLevel()), Respawned() && image == img)
+    
+    if (FAST_RETRY == 0)
+         if (length(spawns)) //start the challenge at the beginning of the level by default
+            return tally(1, once(level_image == lvl && prev(!InLevel()) && InLevel() && start_midway == 0), Respawned() && level_image == lvl && start_midway == 0)
+        else 
+            return tally(1, once(level_image == lvl && prev(!InLevel()) && InLevel() && start_midway == 0x40), Respawned() && level_image == lvl && start_midway == 0x40)    
+    
+    if (FAST_RETRY == 1)
+        if (length(spawns) == 1) //if the array only contains one respawn point ID
+            return tally(1, once(image == img && prev(!InLevel()) && InLevel() && fast_retry_cp == spawns[0]), Respawned() && level_image == img && fast_retry_cp == spawns[0])
+        else //if the array contains multiple respawn point IDs
+            return tally(1, once(image == img && prev(!InLevel()) && InLevel() && any_of(spawns, i => fast_retry_cp == i)), Respawned() && image == img && any_of(spawns, i => fast_retry_cp == i))
+        
+}
 
-// Additional achievments that need additional coding (e.g. a missable flag) go here
+//Function for the trigger conditions of an achievement.
+//TODO: Document this function and add more conditions such as for moons, dragon coins, and groups of exits.
+function Goal(input, arr = []) { 
+    
+    if (input == INSTANT)
+        return goal == 0xff && prev(goal)==0x00
+    if (input == NORMAL_EXIT)
+        return prev(exit)==0x00 && exit == 1
+    if (input == SECRET_EXIT)
+        return prev(exit)==0x00 && exit == 2
+    if (input == BOSS)
+        return prev(cutscene) == 0 && cutscene > 0
+    if (input == SWITCH)
+        return prev(pressed_big_switch) == 0 && pressed_big_switch == 1  
+    if (input == ROOM)
+        return Entered_Room(arr[0])
+    if (input == MIDWAY)
+        if (FAST_RETRY == 0)
+            return midway==1 && prev(midway)==0 && game_state == 0x14
+        if (FAST_RETRY == 1)
+            if length(arr) == 0
+                return prev(fast_retry_cp) != fast_retry_cp && prev(level_image) == level_image 
+            if length(arr) == 1
+                return prev(fast_retry_cp) != arr[0] && fast_retry_cp == arr[0] && prev(level_image) == level_image
+            else
+                return (any_of(arr, i => fast_retry_cp == i)) && prev(level_image) == level_image
+
+}
+
+//universal function for failing a challenge (returning to world map, dying, or resetting to title screen)
+function FailConditions() => never(!InLevel()) && never(Dead()) && never(Title())
+
+//define achievement types
+TYPE_NONE = ""
+TYPE_PROGRESSION = "progression"
+TYPE_MISSABLE = "missable"
+TYPE_WIN = "win_condition"
+
+// * * * * * * * * * * * * * * * * * * * * Achievements Array * * * * * * * * * * * * * * * * * * * *
+// THIS NEEDS MUCH BETTER DOCUMENTATION
+// FORMAT: 
+//[[
+//<title>, 
+//<desc>, 
+//<points>, 
+
+//<level_name> / <start_condition>                    -For non-challenge achievements, simply enter the level's name as a string or enter a level/room image in hex.                    
+//                                                    -For challenge achievements that require a specific level, use the Start(img, arr = [0]) function. This function creates a checkpoint hit condition for priming a challenge.
+//                                                    (The "arr" paramater is optional, for when there are multiple start conditions, such as multiple different levels or checkpoints that can prime the achievement)
+//                                                     arr = [0] (default) means the challenge primes at the start of the level (no checkpoint).
+//                                                     arr = [-1] means the challenge starts from anywhere in the level.
+//                                                     
+//                                                    -For achievements that don't require any specific level or room, use the "ANY_LEVEL" constant, or -1.
 
 
 
-// * * * * * * * * * * * * * * * * * * * * Yoshi Coins * * * * * * * * * * * * * * * * * * * *
+//<trigger_condition>                                 Use the (Goal(type, arr)) function.
+//                                                                  ^Types include INSTANT, NORMAL_EXIT, SECRET_EXIT, MIDWAY, BOSS, SWITCH, ROOM 
+//                                                                         ^
 
-// -- Single-Yoshi-Coin achievements --
-//  For achievements that require collecting one set of yoshi coins from a specific level
-//Fill this in with the exact same format as the Moons example
+//<type>,                                            -TYPE_NONE, TYPE_PROGRESSION, TYPE_MISSABLE, TYPE_WIN   
+//<function>,                                        -Put optional extra conditions for challenge achievements here
+//]]
+                                      
 
-Yoshi_Coin = [
+ANY_LEVEL = -1
+cheevo_arr = [
 
 ]
-// -- Multi-Yoshi-Coin achievements --
-// For achievements that require collecting multiple sets of yoshi coins
-// Fill this in with how you want to partition Yoshi Coins achievements
-// Exact same format as Moons example
-// Put coin amounts that are not = 5 in Problem_Coins array
-dragon_coin_counter = byte(0x1420)
-Yoshi_Coins = {
+//NEEDS BETTER DOCUMENTATION
+for item in cheevo_arr{
+    if (length(item) > 6)                                                                 //If extra functions are passed in then this is a challenge achievement, so add a trigger_when() and FailConditions() (global reset conditions)
+        trigger = item[3] && trigger_when(item[4]) && item[6] && FailConditions() 
+    else                                                                                  
+        if (dictionary_contains_key(lvl, item[3]))                                        //If a level name string is passed in
+            trigger = level_image == lvl[item[3]] && item[4]                              
+        else if item[3] != ANY_LEVEL                                                      //If a level or room image is passed in
+            trigger = room_image == item[3] && item[4]
+        else                                                                              //If the "ANY_LEVEL" constant is passed in (there is no specific room/level requirement)
+            trigger = item[4]
+        
+        
 
-}
-
-//default titles for SINGLE yoshi coin achievements. NOT multi. Leave the title or description blank to be replaced with a default
-//you can change these to whatever you like
-default_yoshi_title = "Yoshi Coin Title:  "
-default_yoshi_desc = "Moon Desc: "
-
-//Have a level where there are more or less than 5 Yoshi Coins? put them here.
-//Format: <lvl_image>: <num_yoshi_coins>, <next entry>
-// Example: Problem_Coins_Dict = {0x01: 4, 0x56: 6}
-Problem_Coins_Dict = {}
-
-//you don't need to touch anything down here
-function Multi_YC_Logic(lvl_img){
-    return once(level_image == lvl_img && prev(dragon_coin_counter) == 4 && dragon_coin_counter == 5)
-}
-
-function Single_YC_Logic(lvl_img){
-    if dictionary_contains_key(Problem_Coins_Dict, lvl_img)
-        return current_yc == Problem_Coins_Dict[lvl_img] && prev(current_yc) == Problem_Coins_Dict[lvl_img]-1
-    return YC_byte(lvl_img) > prev(YC_byte(lvl_img))
-}
-
-function YC_byte(lvl_img) => bit(7-(lvl_img)%8, 0x1f2f+lvl_img/8)
-
-function Yoshi_Title(i){
-    if Yoshi_Coin[i][0] == ""
-        return (default_yoshi_title + level_images[Yoshi_Coin[i][3]])
-    else return Yoshi_Coin[i][0]
-} 
-function Yoshi_Desc(i){
-    if Yoshi_Coin[i][1] == ""
-        return (default_yoshi_desc + level_images[Yoshi_Coin[i][3]])
-    else return Yoshi_Coin[i][1]
-}
-
-
-for key in Yoshi_Coins{
-    yc_needed = length(Yoshi_Coins[key][1])
     achievement(
-        title = Yoshi_Coins[key][0][0],
-        description = Yoshi_Coins[key][0][1],
-        points = Yoshi_Coins[key][0][2],
-        trigger = measured(
-            tally_of(Yoshi_Coins[key][1], yc_needed, Multi_YC_Logic) 
-        ) && never(game_state < 0x0b)
+        title = item[0],
+        description = item[1],
+        points = item[2],
+        type = item[5],
+        trigger = trigger
     )
 }
 
-// If anything doesn't work with the above logic (i.e. missable flag), add it down here. 
 
+//Example achievements array:
+//cheevo_arr = [
+//["Progression Example", "Clear Level 1", 5, "Level 1", Goal(NORMAL_EXIT), TYPE_PROGRESSION],
+//["Secret Exit Example", "Clear the secret exit of Level 2", 5, "Level 2", Goal(SECRET_EXIT), TYPE_NONE],
+//["Switch Palace Example", "Activate the Yellow Switch", 5, "Yellow Switch", Goal(SWITCH), TYPE_NONE],
+//["Grab the Midway Example", "Grab the midway in Level 3", 5, "Level 3", Goal(MIDWAY), TYPE_NONE],
+//["No Cape Challenge Example", "Clear Level 4 without ever using the cape", 10, Start(lvl["Level 4"]), Goal(NORMAL_EXIT), TYPE_NONE, never(Has_Cape())]
+//["Beat Game Example", "Defeat the final boss of Level 20 and beat the game!", 25, "Level 20", Goal(BOSS), TYPE_WIN],
+//["Enter a Specific Room", "Enter a secret room in any level," 1, ANY_LEVEL, Goal(ROOM, [0x116]), TYPE_NONE)
+//
 
+//]
 
-// * * * * * * * * * * * * * * * * * * * * Extra * * * * * * * * * * * * * * * * * * * *
 
 // -- EXITS --
 
@@ -493,104 +388,7 @@ achievement(
     points=50,
     trigger = game_state == 0x0e && exits == 0x3d && prev(exits) == 0x3c
 )
-//                                 Change here ^^       one less here ^^
-
-
-//For the below ones, the only thing you need to edit are the arrays. 
-
-// -- MESSAGE BOXES -- 
-// Achievement will unlock upon hitting a block
-// Note that switch palace and yoshi's house blocks are treated specially.
-//format: [[<title>, <desc>, <points>, <level_image>, <box_id]]
-//view note about box_id on the function MessageBoxHit
-
-msg_box = [
-    
-
-]
-for item in msg_box{
-    achievement(
-        title = item[0],
-        description = item[1],
-        points = item[2],
-        trigger = game_state == 0x14 && level_image == item[3] 
-        && MessageBoxHit(item[4]) && !prev(MessageBoxHit(item[4]))
-    )
-}
-
-// -- ENTERING A SPECIFIC ROOM --
-// format: [[<title>, <desc>, <points>, <level_image>, <previous_room_image>, <room_image>]]
-room_arr = [
-    
-]
-
-for item in room_arr{
-    achievement(
-        title = item[0],
-        description = item[1],
-        points = item[2],
-        trigger = game_state == 0x0f && level_image == item[3] && 
-        prev(room_image==item[4]) && room_image==item[5]
-    )
-}
-
-
-
-// -- ENTERING MULTIPLE SPECIFIC ROOMS IN ONE SESSION --
-// format: [[<title>, <desc>, <points>, <level_image>, [<list of room images>]]    
-
-for key in Rooms{
-    rooms_needed = length(Rooms[key][1])
-    achievement(
-        title = Rooms[key][0][0],
-        description = Rooms[key][0][1],
-        points = Rooms[key][0][2],
-        trigger = measured(tally(rooms_needed, array_map(Rooms[key][1], Has_Entered_Room))) && never(game_state < 0x0b)
-        
-    )
-}
-
-// -- GETTING A MIDWAY --
-// format: [[<title>, <desc>, <points>, <level_image>]]
-midway_arr = [
-    
-]
-
-for item in midway_arr{
-    achievement(
-        title = item[0],
-        description = item[1],
-        points = item[2],
-        trigger = game_state == 0x0f && level_image == item[3] && 
-        MidwayCollected()
-    )
-}
-
-// -- COMPLETING A LEVEL WITHOUT A MIDWAY --
-// Since these achievments may also require additional logic, such as being small, you can pass in a function.
-//format: [[<title>, <description>, <points>, <level_image>, <function>]]
-//if you don't need any extra logic, pass in always_true()
-
-//example function
-function always_small(){
-    return once(game_state==0x0e) && never(powerup!=0x00) 
-}
-
-no_midway_arr = [
-
-]
-
-
-for item in no_midway_arr{
-    achievement(
-        title = item[0],
-        description = item[1],
-        points = item[2],
-        trigger = exit == 0x01 && prev(exit) == 0x00 && level_image == item[3] && 
-        !StartedFromCheckpoint() && item[4]
-    )
-}
-
+//            
 
 // * * * * * * * * * * * * * * * * * * * * Rich Presence * * * * * * * * * * * * * * * * * * * *
 
@@ -617,15 +415,64 @@ rich_presence_display(
 
 
 // * * * * * * * * * * * * * * * * * * * * Leaderboards * * * * * * * * * * * * * * * * * * * *
+LBLevels = {
 
-leaderboardStart = prev(byte(0x100)) == 0x0a && byte(0x100) == 0x0b
+}
+
+BossLevels = {
+}
+
+
+///////////////////
+//  Leaderboards //
+///////////////////
+     leaderboardStart = prev(byte(0x100)) == 0x0a && byte(0x100) == 0x0b
     leaderboardEnd = byte(0x100) <= 0x07
      leaderboard(
          title = "XXXXXXXXXXXXXXXXXXX Any% Speedrun",
-         description = "Fastest time to XXXXXXXXXXXXXXXXX",
-         start = leaderboardStart && exits == 0,
+         description = "From a new file, complete the any% route as fast as you can",
+         start = leaderboardStart && exits == 0 // && bit6(0x1ea3) == 0, (ENSURE MIDWAY OF LEVEL 1 ISN'T COLLECTED HERE)
          cancel = leaderboardEnd,
-         submit = level_image==0x14 && prev(cutscene) != 8 && cutscene == 8,
+         submit = prev(cutscene) == 0 && cutscene != 0 // && level_image == lvl["Dram's Bedroom"] , (INSERT IMAGE OF FINAL CASTLE HERE)
          value = measured(always_true()),
-         format = "FRAMES"
+         format = "FRAMES",
+        lower_is_better = true
      )
+     
+     leaderboard(
+         title = "XXXXXXXXXXXXXXXXXXXX 100% Speedrun",
+         description = "From a new file, complete the 100% route as fast as you can",
+         start = leaderboardStart && exits == 0 // && bit6(0x1ea3) == 0, (ENSURE MIDWAY OF LEVEL 1 ISN'T COLLECTED HERE)
+         cancel = leaderboardEnd,
+         submit = exits == 0xFFFFFFFFFFFF && prev(exits) == 0xFFFFFFFFFFFFF,
+         value = measured(always_true()),
+         format = "FRAMES",
+        lower_is_better = true
+     )
+
+for i in LBLevels {
+    leaderboard(
+        title = format("{0} Speedrun", i),
+        description = format("Complete {0} as fast as you can", i),
+        start = always_true() || StartLevelLBFastRetry(LBLevels[i]) && never(!InLevel()) && never(Title()),
+        cancel = !InLevel(),
+        submit = Normal_Exit(),
+        value = measured(always_true()), 
+        format = "FRAMES",
+        lower_is_better = true
+    )
+}
+
+for i in BossLevels {
+        leaderboard(
+        title = format("{0} Speedrun", i),
+        description = format("Complete {0} as fast as you can", i),
+        start = always_true() || StartLevelLBFastRetry(BossLevels[i]) && never(!InLevel()) && never(Title()),
+        cancel = !InLevel(),
+        submit = CutsceneStart(),
+        value = measured(always_true()), 
+        format = "FRAMES",
+        lower_is_better = true
+    )
+}
+
