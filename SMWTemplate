@@ -431,9 +431,9 @@ BossLevels = {
      leaderboard(
          title = "XXXXXXXXXXXXXXXXXXX Any% Speedrun",
          description = "From a new file, complete the any% route as fast as you can",
-         start = leaderboardStart && exits == 0 // && bit6(0x1ea3) == 0, (ENSURE MIDWAY OF LEVEL 1 ISN'T COLLECTED HERE)
+         start = leaderboardStart && exits == 0, // && bit6(0x1ea3) == 0, (ENSURE MIDWAY OF LEVEL 1 ISN'T COLLECTED HERE)
          cancel = leaderboardEnd,
-         submit = prev(cutscene) == 0 && cutscene != 0 // && level_image == lvl["Dram's Bedroom"] , (INSERT IMAGE OF FINAL CASTLE HERE)
+         submit = prev(cutscene) == 0 && cutscene != 0, // && level_image == lvl["Dram's Bedroom"] , (INSERT IMAGE OF FINAL CASTLE HERE)
          value = measured(always_true()),
          format = "FRAMES",
         lower_is_better = true
@@ -442,9 +442,9 @@ BossLevels = {
      leaderboard(
          title = "XXXXXXXXXXXXXXXXXXXX 100% Speedrun",
          description = "From a new file, complete the 100% route as fast as you can",
-         start = leaderboardStart && exits == 0 // && bit6(0x1ea3) == 0, (ENSURE MIDWAY OF LEVEL 1 ISN'T COLLECTED HERE)
+         start = leaderboardStart && exits == 0, // && bit6(0x1ea3) == 0, (ENSURE MIDWAY OF LEVEL 1 ISN'T COLLECTED HERE)
          cancel = leaderboardEnd,
-         submit = exits == 0xFFFFFFFFFFFF && prev(exits) == 0xFFFFFFFFFFFFF,
+         submit = exits == 0xff && prev(exits) == 0xff,
          value = measured(always_true()),
          format = "FRAMES",
         lower_is_better = true
@@ -475,4 +475,3 @@ for i in BossLevels {
         lower_is_better = true
     )
 }
-
